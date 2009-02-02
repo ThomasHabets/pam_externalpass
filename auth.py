@@ -4,6 +4,7 @@ import yubico.auth
 import sys
 
 #usermap = {"vvvvvvvvvvvv": ('localuser1', 'localuser2')}
+usermap = {"gfrklhlghlrt": ('marvin')}
 
 def dvorak2qwerty(s):
     dvorak = "`1234567890[]',.pyfgcrl/=aoeuidhtns-\\<;qjkxbmwvz"
@@ -32,7 +33,8 @@ def test():
             if "status=OK" != y.verify(key):
                 raise "NOOO"
         except:
-            return "FAIL"
+            return "FAIL\n"
+            return "NOTICE Auth server says: %s" % ("FIXME")
     return "OK"
 
 def main():
