@@ -24,7 +24,7 @@ class Authenticator:
     class ErrNotice(Exception):
         pass
     def verifyToken(self, token):
-        url = 'http://localhost:8080/auth/0/?token=%s' % (token)
+        url = 'http://reptilian.habets.pp.se:8080/auth/0/?token=%s' % (token)
         res = urllib.urlopen(url)
         rs = res.read()
         if rs == "OK\n":
