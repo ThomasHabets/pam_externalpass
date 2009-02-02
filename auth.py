@@ -1,7 +1,7 @@
 #!/usr/local/bin/python
 
-import yubico.auth
 import sys
+import urllib
 
 #usermap = {"vvvvvvvvvvvv": ('localuser1', 'localuser2')}
 usermap = {"gfrklhlghlrt": ('marvin')}
@@ -14,31 +14,52 @@ def dvorak2qwerty(s):
         m[dvorak[i]] = qwerty_us[i]
     return ''.join([m[x] for x in s])
 
-def test():
-    me = '1'
-    y = yubico.auth.yubico(me)
-    user = raw_input("")
-    key = raw_input("")
-    try:
-        if not user in usermap[key[:12]]:
-            raise "NOOOO"
+class Authenticator:
+    class ErrBase(Exception):
+        pass
+    class ErrUsername(ErrBase):
+        pass
+    class ErrBadPassword(Exception):
+        pass
+    class ErrNotice(Exception):
+        pass
+    def verifyToken(self, token):
+        url = 'http://localhost:8080/auth/0/?token=%s' % (token)
+        res = urllib.urlopen(url)
+        rs = res.read()
+        if rs == "OK\n":
+            return True
+        if rs == "FAIL\n":
+            raise self.ErrBadPassword()
+        raise self.ErrNotice(rs)
 
-        if "status=OK" != y.verify(key):
-            raise "NOOO"
-    except:
-        key = dvorak2qwerty(key)
+    def run(self):
+        user = raw_input("")
+        key = raw_input("")
         try:
             if not user in usermap[key[:12]]:
-                raise "NOOOO"
-            if "status=OK" != y.verify(key):
-                raise "NOOO"
-        except:
+                raise self.ErrBase("User not in map")
+
+            self.verifyToken(key)
+        except self.ErrUsername, e:
             return "FAIL\n"
-            return "NOTICE Auth server says: %s" % ("FIXME")
-    return "OK"
+        except self.ErrNotice, e:
+            return str(e)
+        except:
+            try:
+                pw = key[:-44]
+                key = key[-44:]
+                key = pw + dvorak2qwerty(key)
+                self.verifyToken(key)
+            except self.ErrNotice, e:
+                return str(e)
+            except self.ErrBase, e:
+                return "FAIL\n"
+        return "OK"
 
 def main():
-    res = test()
+    y = Authenticator()
+    res = y.run()
     print res
 
 main()
