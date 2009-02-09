@@ -3,8 +3,25 @@
 import sys
 import urllib
 
+usermap = {"gfrklhlghlrt": ('marvin', 'thompa')}
+
+if False:
+    from M2Crypto import Rand, SSL, httpslib
+
+    def get_https(host, url, port=443, certs=('cacert.crt',)):
+        ctx = SSL.Context()
+        for cert in certs:
+            if ctx.load_verify_locations(cert) != 1:
+                raise Exception('CA certificates not loaded')
+        ctx.set_verify(SSL.verify_peer | SSL.verify_fail_if_no_peer_cert, 9)
+        h = httpslib.HTTPSConnection(host, port, ssl_context=ctx)
+        h.putrequest('GET', '/')
+        h.endheaders()
+        resp = h.getresponse()
+        return resp
+
 #usermap = {"vvvvvvvvvvvv": ('localuser1', 'localuser2')}
-usermap = {"gfrklhlghlrt": ('marvin')}
+usermap = {"gfrklhlghlrt": ('marvin', 'thompa')}
 
 def dvorak2qwerty(s):
     dvorak = "`1234567890[]',.pyfgcrl/=aoeuidhtns-\\<;qjkxbmwvz"
