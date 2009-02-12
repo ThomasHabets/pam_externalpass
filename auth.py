@@ -3,7 +3,10 @@
 import sys
 import urllib
 
-usermap = {"gfrklhlghlrt": ('marvin', 'thompa')}
+usermap = {
+	"gfrklhlghlrt": ('marvin', 'thompa'),
+	"bbjfbfhlbhvi": ('marvin', 'thompa'),
+	}
 
 if False:
     from M2Crypto import Rand, SSL, httpslib
@@ -19,9 +22,6 @@ if False:
         h.endheaders()
         resp = h.getresponse()
         return resp
-
-#usermap = {"vvvvvvvvvvvv": ('localuser1', 'localuser2')}
-usermap = {"gfrklhlghlrt": ('marvin', 'thompa')}
 
 def dvorak2qwerty(s):
     dvorak = "`1234567890[]',.pyfgcrl/=aoeuidhtns-\\<;qjkxbmwvz"
@@ -53,6 +53,8 @@ class Authenticator:
     def run(self):
         user = raw_input("")
         key = raw_input("")
+        if len(key) < 44:
+            return "FAIL"
         try:
             if not user in usermap[key[:12]]:
                 raise self.ErrBase("User not in map")
