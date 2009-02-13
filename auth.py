@@ -36,13 +36,17 @@ class Authenticator:
         pass
     class ErrUsername(ErrBase):
         pass
-    class ErrBadPassword(Exception):
+    class ErrBadPassword(ErrBase):
         pass
-    class ErrNotice(Exception):
+    class ErrNotice(ErrBase):
         pass
     def verifyToken(self, token):
         url = 'http://reptilian.habets.pp.se:8080/auth/0/?token=%s' % (token)
-        res = urllib.urlopen(url)
+        try:
+            res = urllib.urlopen(url)
+        except IOError, e:
+            raise self.ErrBadPassword()
+
         rs = res.read()
         if rs == "OK\n":
             return True
@@ -61,7 +65,7 @@ class Authenticator:
 
             self.verifyToken(key)
         except self.ErrUsername, e:
-            return "FAIL\n"
+            return "FAIL"
         except self.ErrNotice, e:
             return str(e)
         except:
@@ -73,7 +77,7 @@ class Authenticator:
             except self.ErrNotice, e:
                 return str(e)
             except self.ErrBase, e:
-                return "FAIL\n"
+                return "FAIL"
         return "OK"
 
 def main():
