@@ -1,0 +1,35 @@
+
+
+
+creator=Thomas Habets <thomas@habets.pp.se>
+
+
+
+
+
+
+severity=minor
+
+
+
+
+
+
+status=open
+
+
+
+
+
+
+summary=yubikey auth: handle same key, different authservers
+
+
+
+
+
+
+time=Thu, 19 Feb 2009 22:21:43 +0000
+
+
+
