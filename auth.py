@@ -88,4 +88,5 @@ def main():
     res = y.run()
     print res
 
-main()
+if __name__ == '__main__':
+    main()
