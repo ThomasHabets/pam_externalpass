@@ -37,8 +37,8 @@ class Authenticator:
         pass
     class ErrNotice(ErrBase):
         pass
-    def verifyToken(self, token):
-        url = 'http://reptilian.habets.pp.se:8080/auth/0/?token=%s' % (token)
+    def verifyToken(self, token, url):
+        url = url % ({'token': token})
         try:
             res = urllib.urlopen(url)
         except IOError, e:
@@ -53,31 +53,33 @@ class Authenticator:
 
     def run(self):
         user = raw_input("")
-        key = raw_input("")
-        if len(key) < 44:
+        token = raw_input("")
+        if len(token) < 44:
             return "FAIL"
-        keyid = key[-44:][:12]
+        keyid = token[-44:][:12]
         try:
-            try:
-                for line in open(os.path.join(pwd.getpwnam(user)[5],
-                                              ".yubikeys")):
-                    fkey, url = line.split(None, 1)
-                    if fkey == keyid or fkey == dvorak2qwerty(keyid):
-                        break
-                else:
-                    raise self.ErrBase("Unauthorized yubikey")
-            except:
-                raise self.ErrBase("Unauthorized yubikey")
+            for line in open(os.path.join(pwd.getpwnam(user)[5],
+                                          ".yubikeys")):
+                key, url = line.split(None, 1)
+                if key == keyid or key == dvorak2qwerty(keyid):
+                    self.verifyToken(token, url)
+                    return "OK"
+            raise self.ErrBase("Yubikey not listed as authorized")
 
-            self.verifyToken(key)
-            return "OK"
         except self.ErrUsername, e:
+            # FIXME: log
             return "FAIL"
+
         except self.ErrNotice, e:
+            # FIXME: log
             return str(e)
+
         except self.ErrBase, e:
+            # FIXME: log
             return "FAIL"
+
         except:
+            # FIXME: log
             return "FAIL"
 
 def main():
