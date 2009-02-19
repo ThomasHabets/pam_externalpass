@@ -58,7 +58,7 @@ class Authenticator:
             try:
                 for line in open(os.path.join(pwd.getpwnam(user)[5],
                                               ".yubikeys")):
-                    key, url = line.split()
+                    key, url = line.split(None, 1)
                     print key, keyid
                     if key == keyid or key == dvorak2qwerty(keyid):
                         break
