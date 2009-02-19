@@ -1,3 +1,8 @@
+Intro
+-----
+This code is for the authenticator client. E.g. a server that is to be
+logged into.
+
 Installing
 ----------
 Put this *before* the "auth required pam_unix" line in /etc/pam.d/ssh:
@@ -7,3 +12,6 @@ Put this *before* the "auth required pam_unix" line in /etc/pam.d/ssh:
 
 If your pam_unix line looks different, make the first line to look
 like the one above except have it be "sufficient".
+
+Put a list of keys and authservers in a users ~/.yubikeys:
+   xxxaaaxxxaaa http://authserver.example.com/auth/0/?token=%(token)s
