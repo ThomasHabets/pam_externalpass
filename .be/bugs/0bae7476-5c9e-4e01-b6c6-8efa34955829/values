@@ -1,0 +1,35 @@
+
+
+
+creator=Thomas Habets <thomas@habets.pp.se>
+
+
+
+
+
+
+severity=minor
+
+
+
+
+
+
+status=open
+
+
+
+
+
+
+summary=yubikey auth: Handle output from yubicos authserver
+
+
+
+
+
+
+time=Thu, 19 Feb 2009 22:27:34 +0000
+
+
+
