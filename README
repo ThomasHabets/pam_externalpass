@@ -1,0 +1,9 @@
+Installing
+----------
+Put this *before* the "auth required pam_unix" line in /etc/pam.d/ssh:
+
+  auth sufficient pam_unix.so              no_warn try_first_pass
+  auth sufficient /.../pam_externalpass.so exec=/.../auth.py prompt=Yubikey:_
+
+If your pam_unix line looks different, make the first line to look
+like the one above except have it be "sufficient".
