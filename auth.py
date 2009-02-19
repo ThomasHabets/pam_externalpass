@@ -2,6 +2,8 @@
 
 import sys
 import urllib
+import os.path
+import pwd
 
 if False:
     from M2Crypto import Rand, SSL, httpslib
@@ -43,9 +45,9 @@ class Authenticator:
             raise self.ErrBadPassword()
 
         rs = res.read()
-        if rs == "OK\n":
+        if rs == "OK":
             return True
-        if rs == "FAIL\n":
+        if rs == "FAIL":
             raise self.ErrBadPassword()
         raise self.ErrNotice(rs)
 
@@ -54,35 +56,29 @@ class Authenticator:
         key = raw_input("")
         if len(key) < 44:
             return "FAIL"
+        keyid = key[-44:][:12]
         try:
             try:
                 for line in open(os.path.join(pwd.getpwnam(user)[5],
                                               ".yubikeys")):
-                    key, url = line.split(None, 1)
-                    print key, keyid
-                    if key == keyid or key == dvorak2qwerty(keyid):
+                    fkey, url = line.split(None, 1)
+                    if fkey == keyid or fkey == dvorak2qwerty(keyid):
                         break
                 else:
-                    raise "Bice"
+                    raise self.ErrBase("Unauthorized yubikey")
             except:
-                raise self.ErrBase("User not in map")
+                raise self.ErrBase("Unauthorized yubikey")
 
             self.verifyToken(key)
+            return "OK"
         except self.ErrUsername, e:
             return "FAIL"
         except self.ErrNotice, e:
             return str(e)
+        except self.ErrBase, e:
+            return "FAIL"
         except:
-            try:
-                pw = key[:-44]
-                key = key[-44:]
-                key = pw + dvorak2qwerty(key)
-                self.verifyToken(key)
-            except self.ErrNotice, e:
-                return str(e)
-            except self.ErrBase, e:
-                return "FAIL"
-        return "OK"
+            return "FAIL"
 
 def main():
     y = Authenticator()
