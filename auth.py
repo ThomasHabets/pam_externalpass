@@ -62,6 +62,7 @@ class Authenticator:
                                           ".yubikeys")):
                 key, url = line.split(None, 1)
                 if key == keyid or key == dvorak2qwerty(keyid):
+                    # FIXME: handle same key, different authserver
                     self.verifyToken(token, url)
                     return "OK"
             raise self.ErrBase("Yubikey not listed as authorized")
