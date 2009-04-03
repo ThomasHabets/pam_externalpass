@@ -4,7 +4,7 @@ This code is for the authenticator client. E.g. a server that is to be
 logged into.
 
 Installing
-----------
+==========
 1) run "make"
 2) copy pam_externalpass.so to a good place, like /usr/local/lib.
 3) copy auth.py to a good place, like /usr/local/sbin.
@@ -24,6 +24,12 @@ Make sure your /etc/ssh/sshd_config (or equivalent) has:
 prompt when you log in.
 
 This has been tested on FreeBSD and Linux (debian).
+
+Local auth
+----------
+If you want the server you log in to to do the authentication locally then
+use another auth.py script. An example would be to run yoracle.py script
+from yoracle (git clone http://cvs.habets.pp.se/~marvin/git/yoracle.git).
 
 Config per-user
 ===============
