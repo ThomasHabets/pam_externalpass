@@ -1,17 +1,45 @@
 Intro
------
+=====
 This code is for the authenticator client. E.g. a server that is to be
 logged into.
 
 Installing
 ----------
-Put this *before* the "auth required pam_unix" line in /etc/pam.d/ssh:
+1) run "make"
+2) copy pam_externalpass.so to a good place, like /usr/local/lib.
+3) copy auth.py to a good place, like /usr/local/sbin.
 
+Put this *before* the "auth required pam_unix" line in /etc/pam.d/ssh (or
+/etc/pam.d/common-auth on debian for all login methods):
   auth sufficient pam_unix.so              no_warn try_first_pass
   auth sufficient /.../pam_externalpass.so exec=/.../auth.py prompt=Yubikey:_
 
-If your pam_unix line looks different, make the first line to look
+If your existing pam_unix line looks different, make the first line to look
 like the one above except have it be "sufficient".
 
-Put a list of keys and authservers in a users ~/.yubikeys:
+Make sure your /etc/ssh/sshd_config (or equivalent) has:
+  ChallengeResponseAuthentication yes
+  UsePAM yes
+... or at least not "no". You'll know this is wrong if you never get a Yubikey
+prompt when you log in.
+
+This has been tested on FreeBSD and Linux (debian).
+
+Config per-user
+===============
+Put a list of keys and authservers in a users ~/.yubikeys. For example this
+line would be to authenticate key xxxaaaxxxaaa agains authserver.example.com
+which is running a yoracle on port 80:
    xxxaaaxxxaaa http://authserver.example.com/auth/0/?token=%(token)s
+
+(the key id is the first 12 characters of every token you generate)
+
+The authenticator client currently only works with my yoracle
+authenticator. I will add support for the official protocol when I get
+around to it. It won't take long, but nobody (even I) have said that
+they need it.
+
+P.S.
+====
+Thank you for adding support for dvorak to your yubikey apps. All my yubikey
+stuff (including this code) has support for it.
