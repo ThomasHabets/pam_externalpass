@@ -6,6 +6,13 @@
 #include <syslog.h>
 #include <stdarg.h>
 #include <string.h>
+#include <errno.h>
+ #include <sys/types.h>
+       #include <sys/time.h>
+       #include <sys/resource.h>
+       #include <sys/wait.h>
+       #include <unistd.h>
+
 
 
 static const char*
@@ -24,6 +31,77 @@ getarg(const char *name, int argc, const char **argv)
 	return 0;
 }
 
+/**
+ *
+ */
+static void
+popen2(const char *cmdline, FILE **fin, FILE **fout, pid_t *rpid)
+{
+        pid_t pid;
+        int fdin[2];
+        int fdout[2];
+        *fin = *fout = 0;
+        *rpid = 0;
+
+        if (pipe(fdin)) {
+                return;
+        }
+        if (pipe(fdout)) {
+                close(fdin[0]);
+                close(fdin[1]);
+                return;
+        }
+
+        if (0 > (pid = fork())) {
+                close(fdin[0]);
+                close(fdin[1]);
+                close(fdout[0]);
+                close(fdout[1]);
+                syslog(LOG_WARNING, "conv() error");
+                return;
+        }
+        if (!pid) {
+                dup2(fdin[0], 0);
+                dup2(fdout[1], 1);
+                close(fdin[1]);
+                close(fdout[0]);
+                execl("/bin/sh", "sh", "-c", cmdline, NULL);
+                syslog(LOG_WARNING, "execl(%s) failed: %s", cmdline,
+                       strerror(errno));
+                exit(1);
+        }
+        close(fdin[0]);
+        close(fdout[1]);
+        if (!(*fin = fdopen(fdin[1], "w"))) {
+                syslog(LOG_WARNING, "fdopen(fdin) failed: %s",
+                       strerror(errno));
+                close(fdin[1]);
+                close(fdout[0]);
+                wait4(pid, NULL, 0, NULL);
+                return;
+        }
+        if (!(*fout = fdopen(fdout[0], "r"))) {
+                syslog(LOG_WARNING, "fdopen(fdin) failed: %s",
+                       strerror(errno));
+                fclose(*fin);
+                close(fdout[0]);
+                *fin = 0;
+                wait4(pid, NULL, 0, NULL);
+                return;
+        }
+        *rpid = pid;
+
+        return;
+}
+
+static void
+pclose2(FILE *f1, FILE *f2, pid_t pid)
+{
+        if (f1) {fclose(f1);}
+        if (f2) {fclose(f2);}
+        wait4(pid, NULL, 0, NULL);
+}
+
 static int
 try_password(struct pam_conv *conv,
 	     const char *username,
@@ -35,30 +113,41 @@ try_password(struct pam_conv *conv,
 	const struct pam_message *msgp;
 	struct pam_response *respp = 0;
 	const char *password;
-	FILE *f;
+	FILE *fin, *fout;
 	int ret = 0;
+        int pid;
 
 	*notice = 0;
 	msg.msg_style = PAM_PROMPT_ECHO_OFF;
 	msg.msg = (char*)prompt;
 	msgp = &msg;
-	conv->conv(1, &msgp, &respp, conv->appdata_ptr);
+	if (PAM_SUCCESS != (ret = conv->conv(1,
+                                             &msgp,
+                                             &respp,
+                                             conv->appdata_ptr))) {
+                syslog(LOG_WARNING, "conv() error");
+                return ret;
+        }
+        
 	password = respp[0].resp;
 
 	/* exec auth program */
 	syslog(LOG_WARNING, "Exec <%s>", external);
-	if (!(f = popen(external, "r+"))) {
-		syslog(LOG_WARNING, "popen() error\n");
+        popen2(external, &fin, &fout, &pid);
+	if (!fin) {
 		goto errout;
 	}
 
-	fprintf(f, "%s\n%s\n", username, password);
-	
+	fprintf(fin, "%s\n%s\n", username, password);
+        fclose(fin);
+        fin = 0;
+	//syslog(LOG_WARNING, "User <%s> pass <%s>", username, password);
+
 	/* get reply */
 	{
 		char buf[4096];
 		memset(buf, 0, sizeof(buf));
-		fread(buf, sizeof(buf), 1, f);
+		fread(buf, sizeof(buf), 1, fout);
 		if (!strcmp(buf, "OK\n")) {
 			ret = 1;
 		}
@@ -67,7 +156,7 @@ try_password(struct pam_conv *conv,
 			*notice = strdup(buf + strlen(noticestr));
 		}
 	}
-	fclose(f);
+	pclose2(fin, fout, pid);
  errout:
 	free(respp);
 	return ret;
