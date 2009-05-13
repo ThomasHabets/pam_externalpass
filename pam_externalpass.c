@@ -29,7 +29,8 @@ static const char *version = VERSION;
 static const char *userconf_envname = "PAM_EXTERNALPASS_USERCONF";
 
 /**
- *
+ * return pointer into existing data (or 0 if ENOENT).
+ * Caller does NOT free the results.
  */
 static const char*
 getarg(const char *name, int argc, const char **argv)
@@ -400,7 +401,7 @@ int pam_sm_authenticate(pam_handle_t *pamh,
                                buf);
                         goto errout;
                 }
-                expanded_user_conf_file = user_conf_file;
+                expanded_user_conf_file = strdup(buf);
         }
 
 
@@ -415,6 +416,8 @@ int pam_sm_authenticate(pam_handle_t *pamh,
  out:	
 	closelog();
 	free((char*)prompt);
+        /* user_conf_file is not mallocated, do not free */
+        free((char*)expanded_user_conf_file);
 	return rv;
 
  errout:
