@@ -29,7 +29,8 @@ static const char *version = VERSION;
 static const char *userconf_envname = "PAM_EXTERNALPASS_USERCONF";
 
 /**
- *
+ * return pointer into existing data (or 0 if ENOENT).
+ * Caller does NOT free the results.
  */
 static const char*
 getarg(const char *name, int argc, const char **argv)
@@ -157,7 +158,7 @@ try_password(struct pam_conv *conv,
         /*  */
         unsetenv(userconf_envname);
         if (user_conf_file) {
-                if (0 > setenv("userconf_envname", user_conf_file, 1)) {
+                if (0 > setenv(userconf_envname, user_conf_file, 1)) {
                         syslog(LOG_WARNING, "Unable to set conf file parm "
                                "%s to <%s>",
                                userconf_envname,
@@ -266,7 +267,15 @@ passwordLoop(struct pam_conv *item, const char *username,
                                  user_conf_file,
 				 &notice)) {
 			ret = PAM_SUCCESS;
-		}
+                        syslog(LOG_WARNING, "Got OK for user %s",
+                               username);
+		} else if (notice) {
+                        syslog(LOG_WARNING, "Got NOTICE for user %s",
+                               username);
+                } else {
+                        syslog(LOG_WARNING, "Got FAIL for user %s",
+                               username);
+                }
 		free(fullprompt);
 		fullprompt = 0;
 	} while (notice);
@@ -277,6 +286,65 @@ passwordLoop(struct pam_conv *item, const char *username,
 	goto okout;
 }
 
+/**
+ * return 1 on fail. Fail is any weirdness at all. Return 0 un success.
+ */
+static int
+fixupUserConfString(char *buf, size_t maxlen,
+                    const char *user_conf_file,
+                    struct passwd *pw)
+{
+        char *d;
+        const char *s;
+        char *tbuf = 0;
+
+        memset(buf, 0, maxlen);
+
+        if (!(tbuf = calloc(1, maxlen+1))) {
+                goto errout;
+        }
+        
+        s = user_conf_file;
+        d = buf;
+        while(*s) {
+                if (*s == '%') {
+                        s++;
+                        switch(*s) {
+                        case 'h':
+                                snprintf(tbuf, maxlen, "%s%s",
+                                         buf, pw->pw_dir);
+                                strncpy(buf,tbuf,maxlen-1);
+                                break;
+                        case 'u':
+                                snprintf(tbuf, maxlen, "%s%s",
+                                         buf, pw->pw_name);
+                                strncpy(buf,tbuf,maxlen-1);
+                                break;
+                        default:
+                                syslog(LOG_WARNING,
+                                       "userconf format error: "
+                                       "unknown escape code <%%%c>", *s);
+                                goto errout;
+                        }
+                        d = index(buf, 0);
+                        s++;
+                } else {
+                        if (d - buf >= maxlen-1) {
+                                syslog(LOG_WARNING,
+                                       "userconf filename became too long: "
+                                       "%u characters", d - buf);
+                                goto errout;
+                        }
+                        *d++ = *s++;
+                }
+        }
+
+        free(tbuf);
+        return 0;
+ errout:
+        free(tbuf);
+        return 1;
+}
 
 /**
  *
@@ -319,20 +387,17 @@ int pam_sm_authenticate(pam_handle_t *pamh,
                 struct passwd pw;
                 struct passwd *ppw;
                 char pwbuf[1024];
-                memset(buf, 0, sizeof(buf));
 
                 getpwnam_r(username, &pw, pwbuf, sizeof(pwbuf), &ppw);
                 if (!ppw) {
                         syslog(LOG_WARNING, "getpwnam_r(%s) failed", username);
                         goto errout;
                 }
-                /* FIXME: change to pattern like:
-                 * %h/.yubikeys
-                 * /etc/yubikeys/%u
-                 */
-                snprintf(buf,
-                         sizeof(buf),
-                         "%s/%s", ppw->pw_dir, user_conf_file);
+                if (fixupUserConfString(buf, sizeof(buf),
+                                        user_conf_file, ppw)) {
+                        syslog(LOG_WARNING, "Error in userconf format");
+                        goto errout;
+                }
 
                 /* check exist */
                 if (access(buf, R_OK)) {
@@ -344,7 +409,7 @@ int pam_sm_authenticate(pam_handle_t *pamh,
                                buf);
                         goto errout;
                 }
-                expanded_user_conf_file = user_conf_file;
+                expanded_user_conf_file = strdup(buf);
         }
 
 
@@ -359,6 +424,8 @@ int pam_sm_authenticate(pam_handle_t *pamh,
  out:	
 	closelog();
 	free((char*)prompt);
+        /* user_conf_file is not mallocated, do not free */
+        free((char*)expanded_user_conf_file);
 	return rv;
 
  errout:
