@@ -1932,6 +1932,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
+
 am__api_version='1.10'
 
 ac_aux_dir=
@@ -2268,8 +2269,8 @@ fi
 
 
 # Define the identity of the package.
- PACKAGE=pam_externalpass
- VERSION=0.11
+ PACKAGE='pam_externalpass'
+ VERSION='0.11'
 
 
 cat >>confdefs.h <<_ACEOF
@@ -2410,7 +2411,6 @@ INSTALL_STRIP_PROGRAM="\$(install_sh) -c -s"
 AMTAR=${AMTAR-"${am_missing_run}tar"}
 
 am__tar='${AMTAR} chof - "$$tardir"'; am__untar='${AMTAR} xf -'
-
 
 
 
