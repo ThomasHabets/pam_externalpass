@@ -172,18 +172,19 @@ try_password(struct pam_conv *conv,
 	const char *password;
 	FILE *fin, *fout;
 	int ret = PAM_AUTH_ERR;
+        int tret;
         int pid;
 
 	*notice = 0;
 	msg.msg_style = PAM_PROMPT_ECHO_OFF;
 	msg.msg = (char*)prompt;
 	msgp = &msg;
-	if (PAM_SUCCESS != (ret = conv->conv(1,
+	if (PAM_SUCCESS != (tret = conv->conv(1,
                                              &msgp,
                                              &respp,
                                              conv->appdata_ptr))) {
                 syslog(LOG_WARNING, "conv() error");
-                return ret;
+                return tret;
         }
         
 	password = respp[0].resp;
@@ -196,7 +197,7 @@ try_password(struct pam_conv *conv,
                                "%s to <%s>",
                                userconf_envname,
                                user_conf_file);
-                        return ret;
+                        return PAM_AUTH_ERR;
                 }
         }
 
@@ -214,12 +215,13 @@ try_password(struct pam_conv *conv,
 	//syslog(LOG_WARNING, "User <%s> pass <%s>", username, password);
 
 	/* get reply */
+        ret = PAM_AUTH_ERR;
 	{
 		char buf[4096];
 		memset(buf, 0, sizeof(buf));
 		fread(buf, sizeof(buf), 1, fout);
 		if (!strcmp(buf, "OK\n")) {
-			ret = PAM_SUCCESS;;
+			ret = PAM_SUCCESS;
 		}
 		char *noticestr = "NOTICE ";
 		if (!strncmp(buf, noticestr, strlen(noticestr))) {
@@ -227,9 +229,14 @@ try_password(struct pam_conv *conv,
 		}
 	}
 	pclose2(fin, fout, pid);
- errout:
+ out:
 	free(respp);
-	return ret;
+        return ret;
+ errout:
+        if (ret == PAM_SUCCESS) {
+                ret = PAM_AUTH_ERR;
+        }
+        goto out;
 }
 
 /**

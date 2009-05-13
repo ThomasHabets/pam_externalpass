@@ -92,6 +92,7 @@ def main():
     y = Authenticator()
     res = y.run()
     print res
+    #open("/tmp/lalaha","a").write(res+'\n')
 
 if __name__ == '__main__':
     main()
