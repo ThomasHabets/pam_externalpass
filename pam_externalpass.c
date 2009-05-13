@@ -158,7 +158,7 @@ try_password(struct pam_conv *conv,
         /*  */
         unsetenv(userconf_envname);
         if (user_conf_file) {
-                if (0 > setenv("userconf_envname", user_conf_file, 1)) {
+                if (0 > setenv(userconf_envname, user_conf_file, 1)) {
                         syslog(LOG_WARNING, "Unable to set conf file parm "
                                "%s to <%s>",
                                userconf_envname,
