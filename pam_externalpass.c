@@ -167,7 +167,7 @@ try_password(struct pam_conv *conv,
         }
 
 	/* exec auth program */
-	syslog(LOG_WARNING, "Exec <%s>", external);
+	syslog(LOG_DEBUG, "Exec <%s>", external);
         popen2(external, &fin, &fout, &pid);
         unsetenv(userconf_envname);
 	if (!fin) {
