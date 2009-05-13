@@ -4,6 +4,9 @@ import sys
 import urllib
 import os.path
 import pwd
+import os
+
+userconf_envname = "PAM_EXTERNALPASS_USERCONF"
 
 if False:
     from M2Crypto import Rand, SSL, httpslib
@@ -57,9 +60,11 @@ class Authenticator:
         if len(token) < 44:
             return "FAIL"
         keyid = token[-44:][:12]
+        fn = os.environ.get(userconf_envname,
+                            os.path.join(pwd.getpwnam(user)[5],
+                                         ".yubikeys"))
         try:
-            for line in open(os.path.join(pwd.getpwnam(user)[5],
-                                          ".yubikeys")):
+            for line in open(fn):
                 key, url = line.split(None, 1)
                 if key == keyid or key == dvorak2qwerty(keyid):
                     # FIXME: handle same key, different authserver
