@@ -267,7 +267,15 @@ passwordLoop(struct pam_conv *item, const char *username,
                                  user_conf_file,
 				 &notice)) {
 			ret = PAM_SUCCESS;
-		}
+                        syslog(LOG_WARNING, "Got OK for user %s",
+                               username);
+		} else if (notice) {
+                        syslog(LOG_WARNING, "Got NOTICE for user %s",
+                               username);
+                } else {
+                        syslog(LOG_WARNING, "Got FAIL for user %s",
+                               username);
+                }
 		free(fullprompt);
 		fullprompt = 0;
 	} while (notice);
