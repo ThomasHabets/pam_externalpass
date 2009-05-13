@@ -1,5 +1,28 @@
 /** pam_externalpass/pam_externalpass.c
  *
+ * pam_externalpass
+ *
+ * By Thomas Habets <thomas@habets.pp.se> 2009
+ *
+ * Call an external program from PAM authentication.
+ *
+ */
+/*
+ *  Copyright (C) 2009 Thomas Habets <thomas@habets.pp.se>
+ *
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2 of the License, or (at your option) any later version.
+ *
+ *  This library is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License along
+ *  with this program; if not, write to the Free Software Foundation, Inc.,
+ *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include <stdlib.h>
 #include <stdio.h>
@@ -49,7 +72,7 @@ getarg(const char *name, int argc, const char **argv)
 }
 
 /**
- *
+ * like popen(), but give access to *both* stdin and stdout. Just like in python.
  */
 static void
 popen2(const char *cmdline, FILE **fin, FILE **fout, pid_t *rpid)
@@ -94,6 +117,7 @@ popen2(const char *cmdline, FILE **fin, FILE **fout, pid_t *rpid)
                        strerror(errno));
                 close(fdin[1]);
                 close(fdout[0]);
+                /* the theory is that when childs stdin closes it will die pretty quickly */
                 wait4(pid, NULL, 0, NULL);
                 return;
         }
@@ -103,6 +127,7 @@ popen2(const char *cmdline, FILE **fin, FILE **fout, pid_t *rpid)
                 fclose(*fin);
                 close(fdout[0]);
                 *fin = 0;
+                /* the theory is that when childs stdin closes it will die pretty quickly */
                 wait4(pid, NULL, 0, NULL);
                 return;
         }
@@ -112,7 +137,7 @@ popen2(const char *cmdline, FILE **fin, FILE **fout, pid_t *rpid)
 }
 
 /**
- *
+ * close two FILEs and wait for a pid.
  */
 static void
 pclose2(FILE *f1, FILE *f2, pid_t pid)
@@ -201,6 +226,8 @@ try_password(struct pam_conv *conv,
 
 /**
  * return a strdup():ed prompt. Caller frees.
+ *
+ * replace '_' with ' ' in prompt arg
  */
 static const char *
 getPrompt(int argc, const char **argv)
@@ -287,6 +314,8 @@ passwordLoop(struct pam_conv *item, const char *username,
 }
 
 /**
+ * turn %h/.foo into /home/bob/.foo, and /etc/foo/%u into /etc/foo/bob
+ *
  * return 1 on fail. Fail is any weirdness at all. Return 0 un success.
  */
 static int
