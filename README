@@ -3,20 +3,26 @@ Intro
 This code is for the authenticator client. E.g. a server that is to be
 logged into.
 
+
 Installing
 ==========
-1) run "make"
-2) copy pam_externalpass.so to a good place, like /usr/local/lib.
-3) copy auth.py to a good place, like /usr/local/sbin.
+1) run "./configure"
+2) run "make"
+3) run "make install"
+3) copy auth.py to a good place, like /usr/local/sbin, or use your own
+   authenticator.
 
-Put this *before* the "auth required pam_unix" line in /etc/pam.d/ssh (or
+
+Configuring
+===========
+Put this *before* the pam_unix line in /etc/pam.d/ssh (or
 /etc/pam.d/common-auth on debian for all login methods):
-  auth sufficient pam_unix.so              no_warn try_first_pass
-  auth sufficient /.../pam_externalpass.so exec=/.../auth.py prompt=Yubikey:_ \
-                                           userconf=%h/.yubikeys
+  auth sufficient /usr/local/lib/libpam_externalpass.so \
+           exec=/.../auth.py \
+           prompt=Yubikey:_ \
+           userconf=%h/.yubikeys
 
-If your existing pam_unix line looks different, make the first line to look
-like the one above except have it be "sufficient".
+(on one line, and no backslashes)
 
 Make sure your /etc/ssh/sshd_config (or equivalent) has:
   ChallengeResponseAuthentication yes
@@ -24,13 +30,20 @@ Make sure your /etc/ssh/sshd_config (or equivalent) has:
 ... or at least not "no". You'll know this is wrong if you never get a Yubikey
 prompt when you log in.
 
+The optional userconf parameter is used to check if there is even a
+point to running the script. If the parameter is used then that file
+must exist, or pam_externalpass will ask for a password or run the
+external authenticator.
+
 This has been tested on FreeBSD and Linux (debian).
+
 
 Local auth
 ----------
 If you want the server you log in to to do the authentication locally then
 use another auth.py script. An example would be to run yoracle.py script
 from yoracle (git clone http://cvs.habets.pp.se/~marvin/git/yoracle.git).
+
 
 Config per-user
 ===============
@@ -45,6 +58,7 @@ The authenticator client currently only works with my yoracle
 authenticator. I will add support for the official protocol when I get
 around to it. It won't take long, but nobody (even I) have said that
 they need it.
+
 
 P.S.
 ====
