@@ -72,7 +72,8 @@ getarg(const char *name, int argc, const char **argv)
 }
 
 /**
- * like popen(), but give access to *both* stdin and stdout. Just like in python.
+ * like popen(), but give access to *both* stdin and stdout. Just like in
+ * python.
  */
 static void
 popen2(const char *cmdline, FILE **fin, FILE **fout, pid_t *rpid)
@@ -117,7 +118,8 @@ popen2(const char *cmdline, FILE **fin, FILE **fout, pid_t *rpid)
                        strerror(errno));
                 close(fdin[1]);
                 close(fdout[0]);
-                /* the theory is that when childs stdin closes it will die pretty quickly */
+                /* the theory is that when childs stdin closes it will die
+                   pretty quickly */
                 wait4(pid, NULL, 0, NULL);
                 return;
         }
@@ -127,7 +129,8 @@ popen2(const char *cmdline, FILE **fin, FILE **fout, pid_t *rpid)
                 fclose(*fin);
                 close(fdout[0]);
                 *fin = 0;
-                /* the theory is that when childs stdin closes it will die pretty quickly */
+                /* the theory is that when childs stdin closes it will die
+                   pretty quickly */
                 wait4(pid, NULL, 0, NULL);
                 return;
         }
@@ -148,7 +151,12 @@ pclose2(FILE *f1, FILE *f2, pid_t pid)
 }
 
 /**
+ * return PAM_SUCCESS if authenticator said "OK"
+ * set "notice" if authenticator returned "NOTICE" and return PAM_AUTH_ERR
+ * else set "notice" to NULL and return PAM_AUTH_ERR
  *
+ * May return other non-PAM_AUTH_ERR on error if that is what conv() returned.
+ * Never PAM_SUCCESS on error though.
  */
 static int
 try_password(struct pam_conv *conv,
@@ -163,7 +171,7 @@ try_password(struct pam_conv *conv,
 	struct pam_response *respp = 0;
 	const char *password;
 	FILE *fin, *fout;
-	int ret = 0;
+	int ret = PAM_AUTH_ERR;
         int pid;
 
 	*notice = 0;
@@ -211,7 +219,7 @@ try_password(struct pam_conv *conv,
 		memset(buf, 0, sizeof(buf));
 		fread(buf, sizeof(buf), 1, fout);
 		if (!strcmp(buf, "OK\n")) {
-			ret = 1;
+			ret = PAM_SUCCESS;;
 		}
 		char *noticestr = "NOTICE ";
 		if (!strncmp(buf, noticestr, strlen(noticestr))) {
@@ -287,12 +295,12 @@ passwordLoop(struct pam_conv *item, const char *username,
 				goto errout;
 			}
 		}
-		if (try_password(item,
-				 username,
-				 fullprompt,
-				 external,
-                                 user_conf_file,
-				 &notice)) {
+		if (PAM_SUCCESS == try_password(item,
+                                                username,
+                                                fullprompt,
+                                                external,
+                                                user_conf_file,
+                                                &notice)) {
 			ret = PAM_SUCCESS;
                         syslog(LOG_WARNING, "Got OK for user %s",
                                username);
