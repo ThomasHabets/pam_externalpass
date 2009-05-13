@@ -12,7 +12,8 @@ Installing
 Put this *before* the "auth required pam_unix" line in /etc/pam.d/ssh (or
 /etc/pam.d/common-auth on debian for all login methods):
   auth sufficient pam_unix.so              no_warn try_first_pass
-  auth sufficient /.../pam_externalpass.so exec=/.../auth.py prompt=Yubikey:_
+  auth sufficient /.../pam_externalpass.so exec=/.../auth.py prompt=Yubikey:_ \
+                                           userconf=%h/.yubikeys
 
 If your existing pam_unix line looks different, make the first line to look
 like the one above except have it be "sufficient".

@@ -1,20 +1,36 @@
-#include <security/pam_modules.h>
-#include <sys/types.h>
-#include <security/pam_appl.h>
+/** pam_externalpass/pam_externalpass.c
+ *
+ */
 #include <stdlib.h>
 #include <stdio.h>
 #include <syslog.h>
 #include <stdarg.h>
 #include <string.h>
 #include <errno.h>
- #include <sys/types.h>
-       #include <sys/time.h>
-       #include <sys/resource.h>
-       #include <sys/wait.h>
-       #include <unistd.h>
+#include <pwd.h>
+#include <unistd.h>
+#include <limits.h>
 
+#include <sys/types.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+#include <sys/wait.h>
+#include <sys/types.h>
 
+#include <security/pam_appl.h>
+#include <security/pam_modules.h>
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+static const char *version = VERSION;
+
+static const char *userconf_envname = "PAM_EXTERNALPASS_USERCONF";
+
+/**
+ *
+ */
 static const char*
 getarg(const char *name, int argc, const char **argv)
 {
@@ -94,6 +110,9 @@ popen2(const char *cmdline, FILE **fin, FILE **fout, pid_t *rpid)
         return;
 }
 
+/**
+ *
+ */
 static void
 pclose2(FILE *f1, FILE *f2, pid_t pid)
 {
@@ -102,11 +121,15 @@ pclose2(FILE *f1, FILE *f2, pid_t pid)
         wait4(pid, NULL, 0, NULL);
 }
 
+/**
+ *
+ */
 static int
 try_password(struct pam_conv *conv,
 	     const char *username,
 	     const char *prompt,
 	     const char *external,
+             const char *user_conf_file,
 	     char **notice)
 {
 	struct pam_message msg;
@@ -131,9 +154,22 @@ try_password(struct pam_conv *conv,
         
 	password = respp[0].resp;
 
+        /*  */
+        unsetenv(userconf_envname);
+        if (user_conf_file) {
+                if (0 > setenv("userconf_envname", user_conf_file, 1)) {
+                        syslog(LOG_WARNING, "Unable to set conf file parm "
+                               "%s to <%s>",
+                               userconf_envname,
+                               user_conf_file);
+                        return ret;
+                }
+        }
+
 	/* exec auth program */
 	syslog(LOG_WARNING, "Exec <%s>", external);
         popen2(external, &fin, &fout, &pid);
+        unsetenv(userconf_envname);
 	if (!fin) {
 		goto errout;
 	}
@@ -162,6 +198,9 @@ try_password(struct pam_conv *conv,
 	return ret;
 }
 
+/**
+ * return a strdup():ed prompt. Caller frees.
+ */
 static const char *
 getPrompt(int argc, const char **argv)
 {
@@ -181,14 +220,23 @@ getPrompt(int argc, const char **argv)
 		}
 	} else {
 		prompt = strdup("External password: ");
+		if (!prompt) {
+			syslog(LOG_WARNING, "strdup(<small string>) failed",
+			       promptArg);
+			return 0;
+		}
 	}
 	return prompt;
 }
 
-
+/**
+ * Loop while the authenticator program returns a NOTICE (as opposed to
+ * OK or FAIL.
+ */
 static int
 passwordLoop(struct pam_conv *item, const char *username,
-	     const char *prompt, const char *external)
+	     const char *prompt, const char *external,
+             const char *user_conf_file)
 {
 	int ret = PAM_AUTH_ERR;
 	/*  */
@@ -215,6 +263,7 @@ passwordLoop(struct pam_conv *item, const char *username,
 				 username,
 				 fullprompt,
 				 external,
+                                 user_conf_file,
 				 &notice)) {
 			ret = PAM_SUCCESS;
 		}
@@ -229,6 +278,9 @@ passwordLoop(struct pam_conv *item, const char *username,
 }
 
 
+/**
+ *
+ */
 PAM_EXTERN
 int pam_sm_authenticate(pam_handle_t *pamh,
 			int flags __attribute__((unused)),
@@ -238,6 +290,8 @@ int pam_sm_authenticate(pam_handle_t *pamh,
 	struct pam_conv *item;
 	const char *username = 0;
 	const char *prompt = 0;
+	const char *user_conf_file = 0;
+	const char *expanded_user_conf_file = 0;
 	int rv = PAM_AUTH_ERR;
 
 	openlog("pam_externalpass", LOG_PID, LOG_AUTH);
@@ -259,10 +313,46 @@ int pam_sm_authenticate(pam_handle_t *pamh,
 		goto errout;
 	}
 
+        user_conf_file = getarg("userconf", argc, argv);
+        if (user_conf_file) {
+                char buf[PATH_MAX + 1];
+                struct passwd pw;
+                struct passwd *ppw;
+                char pwbuf[1024];
+                memset(buf, 0, sizeof(buf));
+
+                getpwnam_r(username, &pw, pwbuf, sizeof(pwbuf), &ppw);
+                if (!ppw) {
+                        syslog(LOG_WARNING, "getpwnam_r(%s) failed", username);
+                        goto errout;
+                }
+                /* FIXME: change to pattern like:
+                 * %h/.yubikeys
+                 * /etc/yubikeys/%u
+                 */
+                snprintf(buf,
+                         sizeof(buf),
+                         "%s/%s", ppw->pw_dir, user_conf_file);
+
+                /* check exist */
+                if (access(buf, R_OK)) {
+                        syslog(LOG_INFO,
+                               "User %s has no conf file %s (%s), "
+                               "or it's not readable",
+                               username,
+                               user_conf_file,
+                               buf);
+                        goto errout;
+                }
+                expanded_user_conf_file = user_conf_file;
+        }
+
+
 	if (PAM_SUCCESS == passwordLoop(item,
 					username,
 					prompt,
-					getarg("exec", argc, argv))) {
+					getarg("exec", argc, argv),
+                                        expanded_user_conf_file)) {
 		rv = PAM_SUCCESS;
 	}
 
@@ -276,10 +366,21 @@ int pam_sm_authenticate(pam_handle_t *pamh,
 	goto out;
 }
 
-PAM_EXTERN int pam_sm_setcred(pam_handle_t *pamh __attribute__((unused)),
-			      int flags __attribute__((unused)),
-                              int argc __attribute__((unused)),
-			      const char **argv __attribute__((unused)))
+/**
+ *
+ */
+PAM_EXTERN int
+pam_sm_setcred(pam_handle_t *pamh __attribute__((unused)),
+               int flags __attribute__((unused)),
+               int argc __attribute__((unused)),
+               const char **argv __attribute__((unused)))
 {
-	return PAM_SUCCESS;
+        return PAM_SUCCESS;
 }
+
+/* ---- Emacs Variables ----
+ * Local Variables:
+ * c-basic-offset: 8
+ * indent-tabs-mode: nil
+ * End:
+ */
