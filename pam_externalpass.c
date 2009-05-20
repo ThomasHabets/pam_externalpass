@@ -74,6 +74,8 @@ getarg(const char *name, int argc, const char **argv)
 /**
  * like popen(), but give access to *both* stdin and stdout. Just like in
  * python.
+ *
+ * on error, *fin, *fout and *rpid will be 0
  */
 static void
 popen2(const char *cmdline, FILE **fin, FILE **fout, pid_t *rpid)
@@ -85,20 +87,22 @@ popen2(const char *cmdline, FILE **fin, FILE **fout, pid_t *rpid)
         *rpid = 0;
 
         if (pipe(fdin)) {
+                syslog(LOG_WARNING, "pipe() error: %s", strerror(errno));
                 return;
         }
         if (pipe(fdout)) {
+                syslog(LOG_WARNING, "pipe() error: %s", strerror(errno));
                 close(fdin[0]);
                 close(fdin[1]);
                 return;
         }
 
         if (0 > (pid = fork())) {
+                syslog(LOG_WARNING, "fork() error: %s", strerror(errno));
                 close(fdin[0]);
                 close(fdin[1]);
                 close(fdout[0]);
                 close(fdout[1]);
-                syslog(LOG_WARNING, "conv() error");
                 return;
         }
         if (!pid) {
@@ -193,8 +197,8 @@ try_password(struct pam_conv *conv,
         unsetenv(userconf_envname);
         if (user_conf_file) {
                 if (0 > setenv(userconf_envname, user_conf_file, 1)) {
-                        syslog(LOG_WARNING, "Unable to set conf file parm "
-                               "%s to <%s>",
+                        syslog(LOG_WARNING,
+                               "Unable to set conf file parm %s to <%s>",
                                userconf_envname,
                                user_conf_file);
                         return PAM_AUTH_ERR;
@@ -212,7 +216,7 @@ try_password(struct pam_conv *conv,
 	fprintf(fin, "%s\n%s\n", username, password);
         fclose(fin);
         fin = 0;
-	//syslog(LOG_WARNING, "User <%s> pass <%s>", username, password);
+	/* syslog(LOG_WARNING, "User <%s> pass <%s>", username, password); */
 
 	/* get reply */
         ret = PAM_AUTH_ERR;
@@ -240,7 +244,7 @@ try_password(struct pam_conv *conv,
 }
 
 /**
- * return a strdup():ed prompt. Caller frees.
+ * return a strdup():ed prompt. Caller frees. Return 0 on failure.
  *
  * replace '_' with ' ' in prompt arg
  */
@@ -309,13 +313,13 @@ passwordLoop(struct pam_conv *item, const char *username,
                                                 user_conf_file,
                                                 &notice)) {
 			ret = PAM_SUCCESS;
-                        syslog(LOG_WARNING, "Got OK for user %s",
+                        syslog(LOG_WARNING, "Got OK for user <%s>",
                                username);
 		} else if (notice) {
-                        syslog(LOG_WARNING, "Got NOTICE for user %s",
+                        syslog(LOG_WARNING, "Got NOTICE for user <%s>",
                                username);
                 } else {
-                        syslog(LOG_WARNING, "Got FAIL for user %s",
+                        syslog(LOG_WARNING, "Got FAIL for user <%s>",
                                username);
                 }
 		free(fullprompt);
