@@ -435,13 +435,13 @@ int pam_sm_authenticate(pam_handle_t *pamh,
 	}
 	
 	/* get conv ptr */
-	if (pam_get_item(pamh, PAM_CONV, (void**)&item) != PAM_SUCCESS) {
+	if (pam_get_item(pamh, PAM_CONV, (const void**)&item) != PAM_SUCCESS) {
 		syslog(LOG_WARNING, "Couldn't get pam_conv");
 		goto errout;
 	}
 
 	/* get username */
-	if (pam_get_user(pamh, (char**)&username, 0) != PAM_SUCCESS) {
+	if (pam_get_user(pamh, &username, 0) != PAM_SUCCESS) {
 		syslog(LOG_WARNING, "Couldn't get username");
 		goto errout;
 	}
