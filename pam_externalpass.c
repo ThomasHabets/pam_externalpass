@@ -118,7 +118,8 @@ popen2(const char *cmdline, FILE **fin, FILE **fout, pid_t *rpid)
         close(fdin[0]);
         close(fdout[1]);
         if (!(*fin = fdopen(fdin[1], "w"))) {
-                syslog(LOG_WARNING, "fdopen(fdin) failed: %s",
+                syslog(LOG_WARNING,
+                       "fdopen(fdin) in parent failed: %s",
                        strerror(errno));
                 close(fdin[1]);
                 close(fdout[0]);
@@ -128,7 +129,8 @@ popen2(const char *cmdline, FILE **fin, FILE **fout, pid_t *rpid)
                 return;
         }
         if (!(*fout = fdopen(fdout[0], "r"))) {
-                syslog(LOG_WARNING, "fdopen(fdin) failed: %s",
+                syslog(LOG_WARNING,
+                       "fdopen(fdout, 'r') in parent failed: %s",
                        strerror(errno));
                 fclose(*fin);
                 close(fdout[0]);
@@ -198,7 +200,7 @@ try_password(struct pam_conv *conv,
         if (user_conf_file) {
                 if (0 > setenv(userconf_envname, user_conf_file, 1)) {
                         syslog(LOG_WARNING,
-                               "Unable to set conf file parm %s to <%s>",
+                               "Unable to set conf file parm <%s> to <%s>",
                                userconf_envname,
                                user_conf_file);
                         return PAM_AUTH_ERR;
@@ -336,6 +338,9 @@ passwordLoop(struct pam_conv *item, const char *username,
  * turn %h/.foo into /home/bob/.foo, and /etc/foo/%u into /etc/foo/bob
  *
  * return 1 on fail. Fail is any weirdness at all. Return 0 un success.
+ *
+ * uses snprintf() because it always null-terminates and never overflows
+ * past the maxlen.
  */
 static int
 fixupUserConfString(char *buf, size_t maxlen,
@@ -358,6 +363,10 @@ fixupUserConfString(char *buf, size_t maxlen,
                 if (*s == '%') {
                         s++;
                         switch(*s) {
+                        case '%':
+                                snprintf(tbuf, maxlen, "%s%%", buf);
+                                strncpy(buf, tbuf, maxlen-1);
+                                break;
                         case 'h':
                                 snprintf(tbuf, maxlen, "%s%s",
                                          buf, pw->pw_dir);
