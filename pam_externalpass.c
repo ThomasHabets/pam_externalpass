@@ -47,6 +47,14 @@
 #include "config.h"
 #endif
 
+#ifdef HAVE_STRINGS_H
+#include <strings.h>
+#endif
+
+#ifndef PAM_EXTERN
+#define PAM_EXTERN
+#endif
+
 static const char *version = VERSION;
 
 static const char *userconf_envname = "PAM_EXTERNALPASS_USERCONF";
@@ -179,7 +187,7 @@ try_password(struct pam_conv *conv,
 	FILE *fin, *fout;
 	int ret = PAM_AUTH_ERR;
         int tret;
-        int pid;
+        pid_t pid;
 
 	*notice = 0;
 	msg.msg_style = PAM_PROMPT_ECHO_OFF;
@@ -427,13 +435,13 @@ int pam_sm_authenticate(pam_handle_t *pamh,
 	}
 	
 	/* get conv ptr */
-	if (pam_get_item(pamh, PAM_CONV, (const void**)&item) != PAM_SUCCESS) {
+	if (pam_get_item(pamh, PAM_CONV, (void**)&item) != PAM_SUCCESS) {
 		syslog(LOG_WARNING, "Couldn't get pam_conv");
 		goto errout;
 	}
 
 	/* get username */
-	if (pam_get_user(pamh, &username, 0) != PAM_SUCCESS) {
+	if (pam_get_user(pamh, (char**)&username, 0) != PAM_SUCCESS) {
 		syslog(LOG_WARNING, "Couldn't get username");
 		goto errout;
 	}
