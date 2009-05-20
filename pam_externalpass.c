@@ -442,11 +442,11 @@ int pam_sm_authenticate(pam_handle_t *pamh,
         if (user_conf_file) {
                 char buf[PATH_MAX + 1];
                 struct passwd pw;
-                struct passwd *ppw;
+                struct passwd *ppw = 0;
                 char pwbuf[1024];
 
-                getpwnam_r(username, &pw, pwbuf, sizeof(pwbuf), &ppw);
-                if (!ppw) {
+                if (getpwnam_r(username, &pw, pwbuf, sizeof(pwbuf), &ppw)
+                    || !ppw) {
                         syslog(LOG_WARNING, "getpwnam_r(%s) failed", username);
                         goto errout;
                 }
