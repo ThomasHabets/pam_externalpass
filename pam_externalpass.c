@@ -224,12 +224,12 @@ try_password(struct pam_conv *conv,
         ret = PAM_AUTH_ERR;
 	{
 		char buf[4096];
+		char *noticestr = "NOTICE ";
 		memset(buf, 0, sizeof(buf));
 		fread(buf, sizeof(buf), 1, fout);
 		if (!strcmp(buf, "OK\n")) {
 			ret = PAM_SUCCESS;
 		}
-		char *noticestr = "NOTICE ";
 		if (!strncmp(buf, noticestr, strlen(noticestr))) {
 			*notice = strdup(buf + strlen(noticestr));
 		}
@@ -270,7 +270,7 @@ getPrompt(int argc, const char **argv)
 	} else {
 		prompt = strdup("External password: ");
 		if (!prompt) {
-			syslog(LOG_WARNING, "strdup(<small string>) failed",
+			syslog(LOG_WARNING, "strdup(<%s>) failed",
 			       promptArg);
 			return 0;
 		}
@@ -386,7 +386,7 @@ fixupUserConfString(char *buf, size_t maxlen,
                         d = index(buf, 0);
                         s++;
                 } else {
-                        if (d - buf >= maxlen-1) {
+                        if ((size_t)(d - buf) >= maxlen-1) {
                                 syslog(LOG_WARNING,
                                        "userconf filename became too long: "
                                        "%u characters", d - buf);
