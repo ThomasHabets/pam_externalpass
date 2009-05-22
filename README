@@ -16,7 +16,6 @@ Dependencies
 For the PAM module:
 * libpam development libraries (in Debian: aptitude install libpam-dev)
 * Working C compiler etc...
-* Not Solaris. This is a bug wrt getpwnam_r() and will be fixed.
 
 For the Yubikey authenticator script (auth.py):
 * python
@@ -41,7 +40,7 @@ Put this *before* the pam_unix line in /etc/pam.d/ssh (or
            prompt=Yubikey:_ \
            userconf=%h/.yubikeys
 
-(on one line, and no backslashes)
+(on one line, and no backslashes. Solaris is more complicated)
 
 The optional 'userconf' parameter is used to check if there is even a
 point to running the script. If the 'userconf' parameter is used then
