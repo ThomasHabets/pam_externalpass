@@ -82,7 +82,7 @@ they need it.
 
 If you're using HTTPS, make sure the certificate chain is accepted by
 the system. If it fails, try running:
-  curl -v -s https://authserver.example.com 2>/dev/null
+  curl -v -s https://authserver.example.com
 That should show you any SSL issues you may have. When in doubt, try running
 plain unencrypted HTTP.
 
