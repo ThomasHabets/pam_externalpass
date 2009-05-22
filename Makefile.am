@@ -3,6 +3,8 @@
 # Don't complain about "missing" standard GNU files
 AUTOMAKE_OPTIONS = foreign
 
+LDFLAGS=-lpam
+
 LIBTOOL=libtool
 lib_LTLIBRARIES = libpam_externalpass.la
 libpam_externalpass_la_SOURCES = pam_externalpass.c
