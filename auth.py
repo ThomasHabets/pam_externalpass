@@ -1,7 +1,6 @@
 #!/usr/local/bin/python
 
 import sys
-import urllib
 import os.path
 import pwd
 import os
@@ -43,14 +42,14 @@ class Authenticator:
     def verifyToken(self, token, url):
         url = url % ({'token': token})
         try:
-            res = urllib.urlopen(url)
+            fo = os.popen("curl -s '%s'" % (url))
+            rs = fo.read()
         except IOError, e:
             raise self.ErrBadPassword()
 
-        rs = res.read()
         if rs == "OK":
             return True
-        if rs == "FAIL":
+        if rs in ("FAIL", ''):
             raise self.ErrBadPassword()
         raise self.ErrNotice(rs)
 
