@@ -71,8 +71,10 @@ xgetpwnam_r(const char *name, struct passwd *pwbuf,
 #elif defined(HAVE_GETPW_R_DRAFT)
         int ret;
         *pwbufp = 0;
-        ret = getpwnam_r(name, pwbuf, buf, buflen);
-        *pwbufp = pwbuf;
+        ret = !getpwnam_r(name, pwbuf, buf, buflen);
+        if (!ret) {
+                *pwbufp = pwbuf;
+        }
         return ret;
 #else
 #error "System doesn't seem to have getpwnam_r(). Not POSIX nor DRAFT."
