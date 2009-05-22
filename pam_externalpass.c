@@ -60,6 +60,27 @@ static const char *version = VERSION;
 static const char *userconf_envname = "PAM_EXTERNALPASS_USERCONF";
 
 /**
+ *
+ */
+static int
+xgetpwnam_r(const char *name, struct passwd *pwbuf,
+            char *buf, size_t buflen, struct passwd **pwbufp)
+{
+#ifdef HAVE_GETPW_R_POSIX
+        return getpwnam_r(name, pwbuf, buf, buflen, pwbufp);
+#elif defined(HAVE_GETPW_R_DRAFT)
+        int ret;
+        *pwbufp = 0;
+        ret = getpwnam_r(name, pwbuf, buf, buflen);
+        *pwbufp = pwbuf;
+        return ret;
+#else
+#error "System doesn't seem to have getpwnam_r(). Not POSIX nor DRAFT."
+#endif
+}
+
+
+/**
  * return pointer into existing data (or 0 if ENOENT).
  * Caller does NOT free the results.
  */
@@ -453,7 +474,7 @@ int pam_sm_authenticate(pam_handle_t *pamh,
                 struct passwd *ppw = 0;
                 char pwbuf[1024];
 
-                if (getpwnam_r(username, &pw, pwbuf, sizeof(pwbuf), &ppw)
+                if (xgetpwnam_r(username, &pw, pwbuf, sizeof(pwbuf), &ppw)
                     || !ppw) {
                         syslog(LOG_WARNING, "getpwnam_r(%s) failed", username);
                         goto errout;
