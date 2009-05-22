@@ -1,16 +1,35 @@
+pam_externalpass/README
+
+ PAM Externalpass
+
+   By Thomas Habets <thomas@habets.pp.se>
+
+
 Intro
 =====
 This code is for the authenticator client. E.g. a server that is to be
 logged into.
 
 
+Dependencies
+============
+For the PAM module:
+* libpam development libraries (in Debian: aptitude install libpam-dev)
+* Working C compiler etc...
+* Not Solaris. This is a bug wrt getpwnam_r() and will be fixed.
+
+For the Yubikey authenticator script (auth.py):
+* python
+* curl
+
+
 Installing
 ==========
 1) run "./configure"
 2) run "make"
-3) run "make install"
-3) copy auth.py to a good place, like /usr/local/sbin, or use your own
-   authenticator.
+3) run "make install" as root
+4) If running Yubikey authentication against Yoracle, copy auth.py to a
+   good place, like /usr/local/sbin, or use your own authenticator.
 
 
 Configuring
@@ -24,33 +43,35 @@ Put this *before* the pam_unix line in /etc/pam.d/ssh (or
 
 (on one line, and no backslashes)
 
+The optional 'userconf' parameter is used to check if there is even a
+point to running the script. If the 'userconf' parameter is used then
+that file must exist, or pam_externalpass will not even ask for a
+password.
+
 Make sure your /etc/ssh/sshd_config (or equivalent) has:
   ChallengeResponseAuthentication yes
   UsePAM yes
 ... or at least not "no". You'll know this is wrong if you never get a Yubikey
 prompt when you log in.
 
-The optional userconf parameter is used to check if there is even a
-point to running the script. If the parameter is used then that file
-must exist, or pam_externalpass will ask for a password or run the
-external authenticator.
-
-This has been tested on FreeBSD and Linux (debian).
+This has been tested on FreeBSD and Linux (Debian).
 
 
-Local auth
-----------
-If you want the server you log in to to do the authentication locally then
-use another auth.py script. An example would be to run yoracle.py script
-from yoracle (git clone http://cvs.habets.pp.se/~marvin/git/yoracle.git).
+Local authentication using yoracle
+----------------------------------
+If you want the server you log in to to run yoracle locally then have
+pam_externalpass run yoracle.py directly using exec=. It's coded to
+understand pam_externalpass.
+
+  git clone http://cvs.habets.pp.se/~marvin/git/yoracle.git
 
 
-Config per-user
-===============
+Config per-user (yubikey auth using the included auth.py)
+=========================================================
 Put a list of keys and authservers in a users ~/.yubikeys. For example this
 line would be to authenticate key xxxaaaxxxaaa agains authserver.example.com
-which is running a yoracle on port 80:
-   xxxaaaxxxaaa http://authserver.example.com/auth/0/?token=%(token)s
+which is running a yoracle as an HTTPS server.:
+   xxxaaaxxxaaa https://authserver.example.com/auth/0/?token=%(token)s
 
 (the key id is the first 12 characters of every token you generate)
 
@@ -58,6 +79,15 @@ The authenticator client currently only works with my yoracle
 authenticator. I will add support for the official protocol when I get
 around to it. It won't take long, but nobody (even I) have said that
 they need it.
+
+If you're using HTTPS, make sure the certificate chain is accepted by
+the system. If it fails, try running:
+  curl -v -s https://authserver.example.com 2>/dev/null
+That should show you any SSL issues you may have. When in doubt, try running
+plain unencrypted HTTP.
+
+If you don't have a signed domain (for example if it's self-signed),
+edit auth.py and add "--cafile /path/to/your/ca.crt" to the curl cmd.
 
 
 P.S.
