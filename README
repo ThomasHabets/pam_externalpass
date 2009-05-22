@@ -8,7 +8,7 @@ pam_externalpass/README
 Intro
 =====
 This code is for the authenticator client. E.g. a server that is to be
-logged into.
+logged into. Tested to work with FreeBSD, Linux and Solaris.
 
 
 Dependencies
@@ -40,7 +40,7 @@ Put this *before* the pam_unix line in /etc/pam.d/ssh (or
            prompt=Yubikey:_ \
            userconf=%h/.yubikeys
 
-(on one line, and no backslashes. Solaris is more complicated)
+(on one line, and no backslashes. Solaris is more complicated, so improvise)
 
 The optional 'userconf' parameter is used to check if there is even a
 point to running the script. If the 'userconf' parameter is used then
@@ -52,8 +52,6 @@ Make sure your /etc/ssh/sshd_config (or equivalent) has:
   UsePAM yes
 ... or at least not "no". You'll know this is wrong if you never get a Yubikey
 prompt when you log in.
-
-This has been tested on FreeBSD and Linux (Debian).
 
 
 Local authentication using yoracle
