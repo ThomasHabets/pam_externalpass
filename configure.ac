@@ -12,7 +12,7 @@ AC_PROG_CC
 AC_PROG_LIBTOOL
 
 # Checks for libraries.
-AC_CHECK_LIB([pam], [pam_get_item])
+AC_CHECK_LIB([pam], [pam_get_item], , [AC_MSG_ERROR([libpam not found])])
 
 # Checks for header files.
 AC_HEADER_STDC
