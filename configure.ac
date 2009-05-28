@@ -12,6 +12,7 @@ AC_PROG_CC
 AC_PROG_LIBTOOL
 
 # Checks for libraries.
+AC_CHECK_LIB([pam], [pam_get_item])
 
 # Checks for header files.
 AC_HEADER_STDC
