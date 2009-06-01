@@ -5,6 +5,7 @@ AC_PREREQ(2.61)
 AC_INIT(pam_externalpass, 0.11, thomas@habets.pp.se)
 AC_CONFIG_SRCDIR([pam_externalpass.c])
 AM_INIT_AUTOMAKE
+AM_MAINTAINER_MODE
 AC_CONFIG_HEADER(config.h)
 
 # Checks for programs.
