@@ -1,11 +1,13 @@
-#!/usr/local/bin/python
+#!/usr/bin/python
 
 import sys
 import os.path
 import pwd
 import os
+import re
 
 userconf_envname = "PAM_EXTERNALPASS_USERCONF"
+maxConfFileSize = 1000000 # max ~/.yubikeys file size, in bytes
 
 if False:
     from M2Crypto import Rand, SSL, httpslib
@@ -41,6 +43,8 @@ class Authenticator:
         pass
     def verifyToken(self, token, url):
         url = url % ({'token': token})
+        # FIXME: log if we nedded to remove evil
+        url = re.sub(r'[^A-Za-z0-9:;/.,%!@^&()+ ?=-]', '', url)
         try:
             fo = os.popen("curl -s '%s'" % (url))
             rs = fo.read()
@@ -53,6 +57,13 @@ class Authenticator:
             raise self.ErrBadPassword()
         raise self.ErrNotice(rs)
 
+    def getConfEntries(self, fn):
+        d = open(fn).read(maxConfFileSize)
+        #FIXME: if (len(d) > x): log warning
+        for line in d.split('\n'):
+            a,b = line.split(None, 1)
+            yield a,b
+
     def run(self):
         user = raw_input("")
         token = raw_input("")
@@ -63,8 +74,7 @@ class Authenticator:
                             os.path.join(pwd.getpwnam(user)[5],
                                          ".yubikeys"))
         try:
-            for line in open(fn):
-                key, url = line.split(None, 1)
+            for key,url in self.getConfEntries(fn):
                 if key == keyid or key == dvorak2qwerty(keyid):
                     # FIXME: handle same key, different authserver
                     self.verifyToken(token, url)
