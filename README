@@ -17,7 +17,7 @@ For the PAM module:
 * libpam development libraries (in Debian: aptitude install libpam-dev)
 * Working C compiler etc...
 
-For the Yubikey authenticator script (auth.py):
+For the Yubikey authenticator script (yubiauth.py):
 * python
 * curl
 
@@ -27,7 +27,7 @@ Installing
 1) run "./configure"
 2) run "make"
 3) run "make install" as root
-4) If running Yubikey authentication against Yoracle, copy auth.py to a
+4) If running Yubikey authentication against Yoracle, copy yubiauth.py to a
    good place, like /usr/local/sbin, or use your own authenticator.
 
 
@@ -36,7 +36,7 @@ Configuring
 Put this *before* the pam_unix line in /etc/pam.d/ssh (or
 /etc/pam.d/common-auth on debian for all login methods):
   auth sufficient /usr/local/lib/libpam_externalpass.so \
-           exec=/.../auth.py \
+           exec=/.../yubiauth.py \
            prompt=Yubikey:_ \
            userconf=%h/.yubikeys
 
@@ -63,8 +63,8 @@ understand pam_externalpass.
   git clone http://cvs.habets.pp.se/~marvin/git/yoracle.git
 
 
-Config per-user (yubikey auth using the included auth.py)
-=========================================================
+Config per-user (yubikey auth using the included yubiauth.py)
+=============================================================
 Put a list of keys and authservers in a users ~/.yubikeys. For example this
 line would be to authenticate key xxxaaaxxxaaa agains authserver.example.com
 which is running a yoracle as an HTTPS server.:
@@ -84,7 +84,7 @@ That should show you any SSL issues you may have. When in doubt, try running
 plain unencrypted HTTP.
 
 If you don't have a signed domain (for example if it's self-signed),
-edit auth.py and add "--cafile /path/to/your/ca.crt" to the curl cmd.
+edit yubiauth.py and add "--cafile /path/to/your/ca.crt" to the curl cmd.
 
 
 P.S.
