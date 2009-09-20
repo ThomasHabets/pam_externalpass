@@ -10,7 +10,10 @@ import logging.handlers
 
 logger = logging.getLogger('yubiauth.py')
 #logger.setLevel(logging.DEBUG)
-handler = logging.handlers.SysLogHandler("/dev/log")
+try:
+    handler = logging.handlers.SysLogHandler("/dev/log")
+except:
+    handler = logging.handlers.DatagramHandler('127.0.0.1', 514)
 handler.setFormatter(logging.Formatter("%(name)s[%(process)d] %(message)s"))
 logger.addHandler(handler)
 
