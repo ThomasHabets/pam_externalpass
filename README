@@ -10,6 +10,13 @@ Intro
 This code is for the authenticator client. E.g. a server that is to be
 logged into. Tested to work with FreeBSD, Linux and Solaris.
 
+Urls
+====
+Clone git repo:
+  git clone git://github.com/ThomasHabets/pam_externalpass.git
+
+Github page:
+  http://github.com/ThomasHabets/pam_externalpass
 
 Dependencies
 ============
