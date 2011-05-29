@@ -35,6 +35,7 @@
 #include <limits.h>
 
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/wait.h>
@@ -434,6 +435,17 @@ fixupUserConfString(char *buf, size_t maxlen,
         return 1;
 }
 
+
+/**
+ *
+ */
+static int
+file_exists(const char *fn)
+{
+        struct stat st;
+        return stat(fn, &st) == 0;
+}
+
 /**
  *
  */
@@ -488,10 +500,9 @@ int pam_sm_authenticate(pam_handle_t *pamh,
                 }
 
                 /* check exist */
-                if (access(buf, R_OK)) {
+                if (!file_exists(buf)) {
                         syslog(LOG_INFO,
-                               "User %s has no conf file %s (%s), "
-                               "or it's not readable",
+                               "User %s has no conf file %s (%s).",
                                username,
                                user_conf_file,
                                buf);
